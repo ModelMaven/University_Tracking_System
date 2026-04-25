@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="glass-panel p-8 max-w-sm w-full">
+    <h2 class="text-2xl font-bold mb-6 text-center">Login</h2>
+    <form method="POST" action="/login" class="space-y-4">
+        <div>
+            <label class="block text-sm text-gray-400 mb-1">Email</label>
+            <input type="email" name="email" class="input-field" placeholder="Enter your email" required autofocus>
+        </div>
+        <div>
+            <label class="block text-sm text-gray-400 mb-1">Password</label>
+            <input type="password" name="password" class="input-field" placeholder="Enter your password" required>
+        </div>
+        <button type="submit" class="primary-btn w-full mt-4">Sign In</button>
+        <div class="text-center mt-4">
+            <a href="/forgot_password" class="text-sm text-cyan-400 hover:text-cyan-300 transition-colors">Forgot your password?</a>
+        </div>
+    </form>
+    
+    <div class="mt-8 text-xs text-gray-500 bg-gray-900/50 p-4 rounded-lg">
+        <p class="font-bold text-gray-400 mb-2">Test Credentials:</p>
+        <ul class="space-y-1">
+            <li>Admin: <code class="bg-black px-1 rounded">admin@system.com</code> / <code class="bg-black px-1 rounded">admin123</code></li>
+            <li>Prof: <code class="bg-black px-1 rounded">smith@test.com</code> / <code class="bg-black px-1 rounded">prof123</code></li>
+            <li>Student: <code class="bg-black px-1 rounded">jane@test.com</code> / <code class="bg-black px-1 rounded">student123</code></li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

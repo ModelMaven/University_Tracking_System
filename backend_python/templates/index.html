@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proximity Attendance MVP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .glass-panel {
+            background-color: rgba(17, 24, 39, 0.5); /* bg-gray-900/50 */
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(31, 41, 55, 1); /* border-gray-800 */
+            border-radius: 1rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .primary-btn {
+            background-image: linear-gradient(to right, #2563eb, #4f46e5);
+            color: white;
+            font-weight: 600;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            transition: all 0.2s;
+            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.25);
+        }
+        .primary-btn:hover { background-image: linear-gradient(to right, #3b82f6, #6366f1); transform: scale(1.02); }
+        .primary-btn:active { transform: scale(0.98); }
+        .primary-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen flex items-center justify-center p-4">
+
+    <!-- View: Role Selection -->
+    <div id="view-selection" class="glass-panel p-8 max-w-md w-full text-center space-y-6">
+        <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-400">
+            Proximity Attendance
+        </h1>
+        <p class="text-gray-400">Select your role to continue</p>
+        
+        <div class="flex flex-col gap-4 mt-8">
+            <button onclick="switchView('view-professor')" class="primary-btn w-full">I am a Professor</button>
+            <button onclick="switchView('view-student')" class="bg-gray-800 hover:bg-gray-700 text-white font-semibold py-3 px-6 rounded-xl transition-all shadow-lg w-full">
+                I am a Student
+            </button>
+        </div>
+    </div>
+
+    <!-- View: Professor Dashboard -->
+    <div id="view-professor" class="glass-panel p-8 max-w-md w-full hidden">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-2xl font-bold">Professor Dashboard</h2>
+            <button onclick="switchView('view-selection')" class="text-sm text-gray-400 hover:text-white">Back</button>
+        </div>
+
+        <div id="prof-pre-session" class="space-y-6">
+            <div class="bg-gray-800/50 p-4 rounded-xl border border-gray-700">
+                <h3 class="font-semibold text-lg">CS 101: Data Structures</h3>
+                <p class="text-sm text-gray-400">Class starting now</p>
+            </div>
+            <button id="btn-start" onclick="startAttendance()" class="w-full primary-btn h-14">
+                📍 Start Attendance
+            </button>
+            <p id="prof-error" class="text-red-400 text-sm hidden"></p>
+        </div>
+
+        <div id="prof-active-session" class="text-center space-y-8 hidden">
+            <div class="space-y-2">
+                <p class="text-gray-400">Share this code with students</p>
+                <div id="prof-otp-display" class="text-6xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400 py-4">
+                    ------
+                </div>
+            </div>
+            <div class="bg-gray-800/50 p-6 rounded-xl border border-gray-700 flex justify-between items-center text-sm">
+                <span class="text-green-400 font-semibold">Accepting Check-ins</span>
+                <span id="prof-expiry" class="text-gray-400 font-mono"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- View: Student Check-In -->
+    <div id="view-student" class="glass-panel p-8 max-w-md w-full hidden">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-2xl font-bold">Student Check-In</h2>
+            <button onclick="switchView('view-selection')" class="text-sm text-gray-400 hover:text-white">Back</button>
+        </div>
+
+        <div id="student-form" class="space-y-6">
+            <div class="space-y-2">
+                <label class="text-sm font-medium text-gray-300">Enter Class OTP</label>
+                <input type="text" id="student-otp" maxlength="6" placeholder="000000" 
+                    class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-center text-3xl tracking-[1em] font-mono h-20"
+                />
+            </div>
+            <button id="btn-verify" onclick="verifyAttendance()" class="w-full primary-btn h-14">
+                📍 Check In Now
+            </button>
+            <div id="student-error" class="hidden flex items-center gap-3 text-red-400 bg-red-400/10 p-4 rounded-xl border border-red-400/20 text-sm"></div>
+        </div>
+
+        <div id="student-success" class="text-center space-y-6 hidden py-8">
+            <div class="inline-flex items-center justify-center w-24 h-24 rounded-full bg-green-500/20 text-green-500 mb-4 text-4xl">
+                ✓
+            </div>
+            <h3 class="text-2xl font-bold text-white">Attendance Marked!</h3>
+            <p id="student-success-msg" class="text-green-400"></p>
+            <button onclick="resetStudent()" class="text-gray-400 hover:text-white underline mt-8 block w-full">Check into another class</button>
+        </div>
+    </div>
+
+    <script>
+        function switchView(viewId) {
+            document.querySelectorAll('.glass-panel').forEach(el => el.classList.add('hidden'));
+            document.getElementById(viewId).classList.remove('hidden');
+        }
+
+        async function startAttendance() {
+            const btn = document.getElementById('btn-start');
+            const err = document.getElementById('prof-error');
+            btn.disabled = true;
+            btn.innerText = 'Locating...';
+            err.classList.add('hidden');
+
+            if (!navigator.geolocation) {
+                err.innerText = 'Geolocation not supported';
+                err.classList.remove('hidden');
+                btn.disabled = false;
+                btn.innerText = '📍 Start Attendance';
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(async (pos) => {
+                try {
+                    const res = await fetch('/api/attendance/start', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            latitude: pos.coords.latitude,
+                            longitude: pos.coords.longitude
+                        })
+                    });
+                    const data = await res.json();
+                    
+                    if (data.success) {
+                        document.getElementById('prof-pre-session').classList.add('hidden');
+                        document.getElementById('prof-active-session').classList.remove('hidden');
+                        document.getElementById('prof-otp-display').innerText = data.data.otp;
+                        
+                        const exp = new Date(data.data.expires_at);
+                        document.getElementById('prof-expiry').innerText = exp.toLocaleTimeString();
+                    } else {
+                        throw new Error(data.message);
+                    }
+                } catch (e) {
+                    err.innerText = e.message || 'Server error';
+                    err.classList.remove('hidden');
+                    btn.disabled = false;
+                    btn.innerText = '📍 Start Attendance';
+                }
+            }, (e) => {
+                err.innerText = 'Location access denied. GPS is required.';
+                err.classList.remove('hidden');
+                btn.disabled = false;
+                btn.innerText = '📍 Start Attendance';
+            }, { enableHighAccuracy: true });
+        }
+
+        async function verifyAttendance() {
+            const otp = document.getElementById('student-otp').value;
+            const btn = document.getElementById('btn-verify');
+            const err = document.getElementById('student-error');
+            
+            if (otp.length !== 6) return;
+
+            btn.disabled = true;
+            btn.innerText = 'Verifying Location...';
+            err.classList.add('hidden');
+
+            navigator.geolocation.getCurrentPosition(async (pos) => {
+                try {
+                    const res = await fetch('/api/attendance/verify', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            otp: otp,
+                            latitude: pos.coords.latitude,
+                            longitude: pos.coords.longitude
+                        })
+                    });
+                    const data = await res.json();
+
+                    if (data.success) {
+                        document.getElementById('student-form').classList.add('hidden');
+                        document.getElementById('student-success').classList.remove('hidden');
+                        document.getElementById('student-success-msg').innerText = `Success! Checked in from ${data.distance_meters}m away.`;
+                    } else {
+                        throw data;
+                    }
+                } catch (e) {
+                    let msg = e.message || 'Verification failed';
+                    if (e.distance_meters !== undefined && e.required_radius !== undefined) {
+                        msg += ` (You are ${e.distance_meters}m away, max is ${e.required_radius}m)`;
+                    }
+                    err.innerText = msg;
+                    err.classList.remove('hidden');
+                    btn.disabled = false;
+                    btn.innerText = '📍 Check In Now';
+                }
+            }, (e) => {
+                err.innerText = 'Location access denied. GPS is required.';
+                err.classList.remove('hidden');
+                btn.disabled = false;
+                btn.innerText = '📍 Check In Now';
+            }, { enableHighAccuracy: true });
+        }
+
+        function resetStudent() {
+            document.getElementById('student-otp').value = '';
+            document.getElementById('student-success').classList.add('hidden');
+            document.getElementById('student-form').classList.remove('hidden');
+            document.getElementById('btn-verify').disabled = false;
+            document.getElementById('btn-verify').innerText = '📍 Check In Now';
+        }
+    </script>
+</body>
+</html>

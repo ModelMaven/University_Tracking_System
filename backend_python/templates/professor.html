@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="w-full max-w-2xl space-y-8">
+    <div class="glass-panel p-8">
+        <h2 class="text-2xl font-bold mb-6">Your Courses</h2>
+        
+        {% if not courses %}
+            <p class="text-gray-400">You have no courses assigned.</p>
+        {% else %}
+            <div class="space-y-4">
+                {% for course in courses %}
+                <div class="bg-gray-800/50 p-6 rounded-xl border border-gray-700">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-semibold text-lg text-blue-400">{{ course.name }}</h3>
+                    </div>
+                    
+                    <div class="flex gap-4">
+                        <button onclick="startAttendance('{{ course.id }}')" id="btn-start-{{ course.id }}" class="primary-btn flex-1 text-sm py-2">
+                            📍 Start Attendance
+                        </button>
+                        <button onclick="document.getElementById('task-form-{{ course.id }}').classList.toggle('hidden')" class="bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-xl transition-all shadow-lg flex-1 text-sm">
+                            📝 Assign Task
+                        </button>
+                    </div>
+
+                    <!-- Attendance Session Display -->
+                    <div id="session-display-{{ course.id }}" class="hidden mt-6 text-center animate-in slide-in-from-top-2">
+                        <p class="text-gray-400 text-sm">Share this code with students</p>
+                        <div id="otp-{{ course.id }}" class="text-5xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400 py-2"></div>
+                        <p class="text-green-400 text-xs mt-2">Accepting Check-ins until <span id="expiry-{{ course.id }}"></span></p>
+                    </div>
+
+                    <!-- Task Assignment Form -->
+                    <form id="task-form-{{ course.id }}" onsubmit="createTask(event, '{{ course.id }}')" class="hidden mt-6 space-y-4 animate-in slide-in-from-top-2">
+                        <input type="text" id="title-{{ course.id }}" placeholder="Task Title" class="input-field text-sm" required>
+                        <textarea id="desc-{{ course.id }}" placeholder="Description" class="input-field text-sm h-24" required></textarea>
+                        <button type="submit" class="bg-green-600 hover:bg-green-500 text-white font-semibold py-2 px-4 rounded-xl transition-all w-full text-sm">Send Assignment</button>
+                    </form>
+                    
+                    <p id="error-{{ course.id }}" class="text-red-400 text-sm mt-4 hidden"></p>
+                </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    async function startAttendance(courseId) {
+        const btn = document.getElementById(`btn-start-${courseId}`);
+        const err = document.getElementById(`error-${courseId}`);
+        btn.disabled = true;
+        btn.innerText = 'Locating...';
+        err.classList.add('hidden');
+
+        if (!navigator.geolocation) {
+            err.innerText = 'Geolocation not supported';
+            err.classList.remove('hidden');
+            btn.disabled = false;
+            btn.innerText = '📍 Start Attendance';
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(async (pos) => {
+            try {
+                const res = await fetch('/api/attendance/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        course_id: courseId,
+                        latitude: pos.coords.latitude,
+                        longitude: pos.coords.longitude
+                    })
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    document.getElementById(`session-display-${courseId}`).classList.remove('hidden');
+                    document.getElementById(`otp-${courseId}`).innerText = data.data.otp;
+                    const exp = new Date(data.data.expires_at);
+                    document.getElementById(`expiry-${courseId}`).innerText = exp.toLocaleTimeString();
+                    btn.innerText = 'Session Active';
+                } else {
+                    throw new Error(data.message);
+                }
+            } catch (e) {
+                err.innerText = e.message || 'Server error';
+                err.classList.remove('hidden');
+                btn.disabled = false;
+                btn.innerText = '📍 Start Attendance';
+            }
+        }, (e) => {
+            err.innerText = 'Location access denied. GPS is required.';
+            err.classList.remove('hidden');
+            btn.disabled = false;
+            btn.innerText = '📍 Start Attendance';
+        }, { enableHighAccuracy: true });
+    }
+
+    async function createTask(e, courseId) {
+        e.preventDefault();
+        const title = document.getElementById(`title-${courseId}`).value;
+        const desc = document.getElementById(`desc-${courseId}`).value;
+        const err = document.getElementById(`error-${courseId}`);
+        err.classList.add('hidden');
+
+        try {
+            const res = await fetch('/api/assignments', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ course_id: courseId, title: title, description: desc })
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                document.getElementById(`task-form-${courseId}`).classList.add('hidden');
+                document.getElementById(`title-${courseId}`).value = '';
+                document.getElementById(`desc-${courseId}`).value = '';
+                alert("Assignment sent successfully!");
+            } else {
+                throw new Error(data.message);
+            }
+        } catch (e) {
+            err.innerText = e.message || 'Server error';
+            err.classList.remove('hidden');
+        }
+    }
+</script>
+{% endblock %}

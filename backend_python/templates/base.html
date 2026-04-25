@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proximity Attendance MVP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        midnight: '#030712',
+                        cyber: '#06b6d4',
+                        neon: '#8b5cf6',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .glass-panel {
+            background: linear-gradient(145deg, rgba(31,41,55,0.4) 0%, rgba(17,24,39,0.6) 100%);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 1.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.05);
+        }
+        .primary-btn {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            font-weight: 600;
+            padding: 0.75rem 1.5rem;
+            border-radius: 1rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 10px 20px -5px rgba(139, 92, 246, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+        .primary-btn::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: all 0.5s ease;
+        }
+        .primary-btn:hover::after { left: 100%; }
+        .primary-btn:hover { transform: translateY(-2px); box-shadow: 0 15px 25px -5px rgba(139, 92, 246, 0.5); }
+        .primary-btn:active { transform: translateY(1px); }
+        .primary-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        
+        .input-field {
+            width: 100%;
+            background-color: rgba(17, 24, 39, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1rem;
+            padding: 0.75rem 1rem;
+            color: white;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        .input-field:focus { 
+            border-color: #8b5cf6; 
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+            background-color: rgba(17, 24, 39, 0.9);
+        }
+        
+        /* Subtle animated background gradient */
+        .bg-animated {
+            background: radial-gradient(circle at 15% 50%, rgba(99, 102, 241, 0.15), transparent 25%),
+                        radial-gradient(circle at 85% 30%, rgba(6, 182, 212, 0.15), transparent 25%);
+            background-color: #030712;
+        }
+    </style>
+</head>
+<body class="bg-animated text-gray-100 min-h-screen flex flex-col selection:bg-neon selection:text-white">
+    <nav class="p-4 border-b border-gray-800 flex justify-between items-center bg-gray-900/50 backdrop-blur-md sticky top-0 z-50">
+        <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-400">
+            Proximity Attendance
+        </h1>
+        {% if session.get('user_id') %}
+        <div class="flex items-center gap-4">
+            <span class="text-sm text-gray-400">Hello, {{ session.get('name') }} ({{ session.get('role') }})</span>
+            {% if session.get('available_roles') and session.get('available_roles')|length > 1 %}
+            <a href="/select_role" class="text-sm text-cyber hover:text-white transition-colors bg-cyber/10 hover:bg-cyber/20 px-3 py-1 rounded-full border border-cyber/30">🔄 Switch Role</a>
+            {% endif %}
+            <a href="/logout" class="text-sm text-red-400 hover:text-red-300">Logout</a>
+        </div>
+        {% endif %}
+    </nav>
+    <main class="flex-grow p-4 flex flex-col items-center justify-center">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="fixed top-20 right-4 z-50 space-y-2">
+                    {% for category, message in messages %}
+                        <div class="p-4 rounded-xl border {{ 'bg-red-900/50 border-red-500 text-red-200' if category == 'error' else 'bg-green-900/50 border-green-500 text-green-200' }} backdrop-blur-md shadow-xl animate-bounce">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>

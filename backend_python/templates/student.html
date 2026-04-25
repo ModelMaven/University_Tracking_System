@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8">
+    
+    <!-- Left Column: Check In & Courses -->
+    <div class="space-y-8">
+        <div class="glass-panel p-8 text-center">
+            <h2 class="text-2xl font-bold mb-6">Check In</h2>
+            <div id="student-form" class="space-y-6">
+                <input type="text" id="student-otp" maxlength="6" placeholder="000000" 
+                    class="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-center text-3xl tracking-[1em] font-mono h-20"
+                />
+                <button id="btn-verify" onclick="verifyAttendance()" class="w-full primary-btn h-14">
+                    📍 Check In Now
+                </button>
+                <div id="student-error" class="hidden flex items-center gap-3 text-red-400 bg-red-400/10 p-4 rounded-xl border border-red-400/20 text-sm"></div>
+            </div>
+
+            <div id="student-success" class="text-center space-y-4 hidden py-4">
+                <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-green-500/20 text-green-500 mb-2 text-3xl">✓</div>
+                <h3 class="text-xl font-bold text-white">Attendance Marked!</h3>
+                <p id="student-success-msg" class="text-green-400 text-sm"></p>
+                <button onclick="resetStudent()" class="text-gray-400 hover:text-white underline mt-4 block w-full text-sm">Check into another class</button>
+            </div>
+        </div>
+
+        <div class="glass-panel p-6">
+            <h2 class="text-xl font-bold mb-4">My Enrolled Courses</h2>
+            {% if not courses %}
+                <p class="text-gray-400 text-sm">You are not enrolled in any courses.</p>
+            {% else %}
+                <ul class="space-y-3">
+                    {% for course in courses %}
+                    <li class="bg-gray-800/50 p-4 rounded-lg border border-gray-700 flex justify-between items-center">
+                        <div>
+                            <p class="font-semibold text-blue-400">{{ course.name }}</p>
+                            <p class="text-xs text-gray-400">{{ course.prof_name }}</p>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Right Column: Assignments -->
+    <div class="glass-panel p-6">
+        <h2 class="text-xl font-bold mb-4">Upcoming Assignments</h2>
+        {% if not assignments %}
+            <p class="text-gray-400 text-sm text-center py-8">No active assignments.</p>
+        {% else %}
+            <div class="space-y-4 max-h-[400px] overflow-y-auto pr-2 mb-8">
+                {% for task in assignments %}
+                <div class="bg-gray-800/50 p-5 rounded-xl border border-gray-700">
+                    <span class="text-xs font-bold px-2 py-1 bg-blue-900/50 text-blue-400 rounded uppercase tracking-wider">{{ task.course_name }}</span>
+                    <h3 class="font-semibold text-lg mt-3 mb-2">{{ task.title }}</h3>
+                    <p class="text-sm text-gray-300 leading-relaxed">{{ task.description }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+        
+        <!-- Emergency Admin Contact -->
+        <h2 class="text-xl font-bold mb-4 border-t border-gray-800 pt-6">Emergency Admin Contact</h2>
+        {% if admin_contact %}
+            <div class="bg-gradient-to-br from-gray-800/80 to-gray-900/80 p-5 rounded-xl border border-purple-500/30 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center text-xl font-bold">
+                    {{ admin_contact.first_name[0] }}{{ admin_contact.last_name[0] }}
+                </div>
+                <div>
+                    <h3 class="font-bold text-white">{{ admin_contact.first_name }} {{ admin_contact.last_name }}</h3>
+                    <p class="text-sm text-purple-300">{{ admin_contact.email }}</p>
+                </div>
+                <a href="mailto:{{ admin_contact.email }}" class="ml-auto text-xs bg-purple-600 hover:bg-purple-500 text-white px-3 py-2 rounded-lg transition-colors">
+                    Email Support
+                </a>
+            </div>
+        {% else %}
+            <p class="text-gray-400 text-sm">No emergency admin has been assigned to you yet.</p>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    async function verifyAttendance() {
+        const otp = document.getElementById('student-otp').value;
+        const btn = document.getElementById('btn-verify');
+        const err = document.getElementById('student-error');
+        
+        if (otp.length !== 6) return;
+
+        btn.disabled = true;
+        btn.innerText = 'Verifying Location...';
+        err.classList.add('hidden');
+
+        navigator.geolocation.getCurrentPosition(async (pos) => {
+            try {
+                const res = await fetch('/api/attendance/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        otp: otp,
+                        latitude: pos.coords.latitude,
+                        longitude: pos.coords.longitude
+                    })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    document.getElementById('student-form').classList.add('hidden');
+                    document.getElementById('student-success').classList.remove('hidden');
+                    document.getElementById('student-success-msg').innerText = `Success! Checked in from ${data.distance_meters}m away.`;
+                } else {
+                    throw data;
+                }
+            } catch (e) {
+                let msg = e.message || 'Verification failed';
+                if (e.distance_meters !== undefined && e.required_radius !== undefined) {
+                    msg += ` (You are ${e.distance_meters}m away, max is ${e.required_radius}m)`;
+                }
+                err.innerText = msg;
+                err.classList.remove('hidden');
+                btn.disabled = false;
+                btn.innerText = '📍 Check In Now';
+            }
+        }, (e) => {
+            err.innerText = 'Location access denied. GPS is required.';
+            err.classList.remove('hidden');
+            btn.disabled = false;
+            btn.innerText = '📍 Check In Now';
+        }, { enableHighAccuracy: true });
+    }
+
+    function resetStudent() {
+        document.getElementById('student-otp').value = '';
+        document.getElementById('student-success').classList.add('hidden');
+        document.getElementById('student-form').classList.remove('hidden');
+        document.getElementById('btn-verify').disabled = false;
+        document.getElementById('btn-verify').innerText = '📍 Check In Now';
+    }
+</script>
+{% endblock %}

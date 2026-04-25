@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="w-full max-w-4xl space-y-8 text-center animate-in slide-in-from-bottom-4 duration-500">
+    <h2 class="text-4xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-neon to-cyber mb-4">Select Your Destination</h2>
+    <p class="text-gray-400 text-lg mb-8">It looks like you have multiple roles. Where would you like to go today?</p>
+    
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 justify-center">
+        {% if 'ADMIN' in roles %}
+        <form action="/set_role" method="POST" class="h-full">
+            <input type="hidden" name="role" value="ADMIN">
+            <button type="submit" class="w-full h-full glass-panel p-8 flex flex-col items-center justify-center gap-4 group hover:border-red-500/50 hover:shadow-red-500/20 transition-all duration-300 transform hover:-translate-y-2">
+                <div class="w-20 h-20 rounded-full bg-red-500/10 flex items-center justify-center text-4xl group-hover:scale-110 transition-transform group-hover:bg-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.3)]">👑</div>
+                <h3 class="text-2xl font-bold text-red-400">Admin</h3>
+                <p class="text-sm text-gray-400">Manage users, courses, and system settings.</p>
+            </button>
+        </form>
+        {% endif %}
+
+        {% if 'PROFESSOR' in roles %}
+        <form action="/set_role" method="POST" class="h-full">
+            <input type="hidden" name="role" value="PROFESSOR">
+            <button type="submit" class="w-full h-full glass-panel p-8 flex flex-col items-center justify-center gap-4 group hover:border-blue-500/50 hover:shadow-blue-500/20 transition-all duration-300 transform hover:-translate-y-2">
+                <div class="w-20 h-20 rounded-full bg-blue-500/10 flex items-center justify-center text-4xl group-hover:scale-110 transition-transform group-hover:bg-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.3)]">👨‍🏫</div>
+                <h3 class="text-2xl font-bold text-blue-400">Professor</h3>
+                <p class="text-sm text-gray-400">Start attendance sessions and assign tasks.</p>
+            </button>
+        </form>
+        {% endif %}
+
+        {% if 'STUDENT' in roles %}
+        <form action="/set_role" method="POST" class="h-full">
+            <input type="hidden" name="role" value="STUDENT">
+            <button type="submit" class="w-full h-full glass-panel p-8 flex flex-col items-center justify-center gap-4 group hover:border-green-500/50 hover:shadow-green-500/20 transition-all duration-300 transform hover:-translate-y-2">
+                <div class="w-20 h-20 rounded-full bg-green-500/10 flex items-center justify-center text-4xl group-hover:scale-110 transition-transform group-hover:bg-green-500/20 shadow-[0_0_15px_rgba(34,197,94,0.3)]">🎓</div>
+                <h3 class="text-2xl font-bold text-green-400">Student</h3>
+                <p class="text-sm text-gray-400">Check in to classes and view assignments.</p>
+            </button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
