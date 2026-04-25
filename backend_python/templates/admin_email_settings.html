@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="w-full max-w-3xl mx-auto space-y-6 animate-in fade-in duration-300">
+
+    <div class="flex items-center justify-between mb-8">
+        <div class="flex items-center gap-4">
+            <a href="/admin" class="text-gray-400 hover:text-white transition-colors bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-xl flex items-center gap-2">
+                <span>←</span> Back to Hub
+            </a>
+            <h2 class="text-3xl font-bold text-white flex items-center gap-3">
+                <span class="text-amber-400">✉️</span> Email Settings
+            </h2>
+        </div>
+    </div>
+
+    <!-- STATUS BANNER -->
+    <div class="glass-panel p-5 relative overflow-hidden flex items-center gap-4 {% if smtp_configured %}border-l-4 border-l-green-500{% else %}border-l-4 border-l-amber-500{% endif %}">
+        <div class="text-3xl">{% if smtp_configured %}✅{% else %}⚠️{% endif %}</div>
+        <div>
+            <h3 class="font-bold text-lg {% if smtp_configured %}text-green-400{% else %}text-amber-400{% endif %}">
+                {% if smtp_configured %}SMTP Configured — Real Emails Active{% else %}SMTP Not Configured — Using Mock Mode{% endif %}
+            </h3>
+            <p class="text-sm text-gray-400 mt-1">
+                {% if smtp_configured %}
+                    Invitation and password reset emails will be sent via your SMTP server.
+                {% else %}
+                    All emails are currently printed to your server terminal. Fill in the form below to enable real sending.
+                {% endif %}
+            </p>
+        </div>
+    </div>
+
+    <!-- SMTP SETTINGS FORM -->
+    <div class="glass-panel p-8 relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-1 h-full bg-amber-500"></div>
+        <h3 class="text-xl font-bold text-amber-400 mb-6">SMTP Configuration</h3>
+
+        <form action="/admin/email_settings" method="POST" class="space-y-5">
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-400 mb-2">SMTP Host</label>
+                    <input type="text" name="smtp_host" value="{{ settings.smtp_host }}"
+                        placeholder="smtp.gmail.com"
+                        class="input-field w-full p-3 text-sm">
+                    <p class="text-xs text-gray-600 mt-1">e.g. smtp.gmail.com, smtp.sendgrid.net</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-400 mb-2">SMTP Port</label>
+                    <input type="number" name="smtp_port" value="{{ settings.smtp_port }}"
+                        placeholder="587"
+                        class="input-field w-full p-3 text-sm">
+                    <p class="text-xs text-gray-600 mt-1">587 (TLS) or 465 (SSL)</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-400 mb-2">SMTP Username</label>
+                    <input type="text" name="smtp_user" value="{{ settings.smtp_user }}"
+                        placeholder="your@email.com"
+                        class="input-field w-full p-3 text-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-400 mb-2">SMTP Password / App Password</label>
+                    <input type="password" name="smtp_password" value="{{ settings.smtp_password }}"
+                        placeholder="••••••••••••"
+                        class="input-field w-full p-3 text-sm">
+                    <p class="text-xs text-gray-600 mt-1">For Gmail, use an <a href="https://myaccount.google.com/apppasswords" target="_blank" class="text-amber-400 hover:underline">App Password</a></p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 border-t border-gray-800 pt-5">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-400 mb-2">From Name (Display Name)</label>
+                    <input type="text" name="smtp_from_name" value="{{ settings.smtp_from_name }}"
+                        placeholder="University Attendance System"
+                        class="input-field w-full p-3 text-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-400 mb-2">From Email Address</label>
+                    <input type="email" name="smtp_from_email" value="{{ settings.smtp_from_email }}"
+                        placeholder="noreply@university.edu"
+                        class="input-field w-full p-3 text-sm">
+                </div>
+            </div>
+
+            <div class="flex gap-4 pt-4">
+                <button type="submit" class="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-bold px-8 py-3 rounded-xl transition-all shadow-lg transform hover:-translate-y-0.5">
+                    💾 Save Settings
+                </button>
+                <button type="submit" form="test-form" class="bg-gray-700 hover:bg-gray-600 text-white font-bold px-8 py-3 rounded-xl transition-all border border-gray-600">
+                    🧪 Send Test Email
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- TEST EMAIL FORM -->
+    <form id="test-form" action="/admin/email_settings/test" method="POST" class="hidden">
+        <input type="hidden" name="test_email" id="test_email_val">
+    </form>
+
+    <!-- QUICK SETUP GUIDES -->
+    <div class="glass-panel p-6">
+        <h3 class="text-lg font-bold text-gray-300 mb-4">📋 Quick Setup Guides</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div class="bg-gray-900/50 p-4 rounded-xl border border-gray-700">
+                <h4 class="font-bold text-blue-400 mb-2">Gmail</h4>
+                <ul class="text-gray-400 space-y-1">
+                    <li>Host: <code class="text-gray-200">smtp.gmail.com</code></li>
+                    <li>Port: <code class="text-gray-200">587</code></li>
+                    <li>Use <a href="https://myaccount.google.com/apppasswords" target="_blank" class="text-cyan-400 hover:underline">App Password</a></li>
+                </ul>
+            </div>
+            <div class="bg-gray-900/50 p-4 rounded-xl border border-gray-700">
+                <h4 class="font-bold text-blue-400 mb-2">Outlook / Office 365</h4>
+                <ul class="text-gray-400 space-y-1">
+                    <li>Host: <code class="text-gray-200">smtp.office365.com</code></li>
+                    <li>Port: <code class="text-gray-200">587</code></li>
+                    <li>Use your Microsoft credentials</li>
+                </ul>
+            </div>
+            <div class="bg-gray-900/50 p-4 rounded-xl border border-gray-700">
+                <h4 class="font-bold text-blue-400 mb-2">SendGrid</h4>
+                <ul class="text-gray-400 space-y-1">
+                    <li>Host: <code class="text-gray-200">smtp.sendgrid.net</code></li>
+                    <li>Port: <code class="text-gray-200">587</code></li>
+                    <li>Username: <code class="text-gray-200">apikey</code></li>
+                    <li>Password: Your API Key</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+document.querySelector('button[type="submit"][form="test-form"]').addEventListener('click', function(e) {
+    e.preventDefault();
+    const email = prompt('Enter your email address to receive the test:');
+    if (email) {
+        document.getElementById('test_email_val').value = email;
+        document.getElementById('test-form').submit();
+    }
+});
+</script>
+{% endblock %}

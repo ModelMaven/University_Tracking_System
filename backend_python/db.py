@@ -81,6 +81,12 @@ def init_db():
     )
     ''')
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('attendance_radius_meters', '20')")
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('smtp_host', '')")
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('smtp_port', '587')")
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('smtp_user', '')")
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('smtp_password', '')")
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('smtp_from_name', 'University Attendance System')")
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('smtp_from_email', '')")
 
     # 6. Attendance Sessions (Linked to Course)
     cursor.execute('''
