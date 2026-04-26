@@ -81,6 +81,62 @@ def init_db():
     )
     ''')
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('attendance_radius_meters', '20')")
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('smtp_host', '')")
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('smtp_port', '587')")
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('smtp_user', '')")
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('smtp_password', '')")
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('smtp_from_name', 'University Attendance System')")
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('smtp_from_email', '')")
+    
+    invitation_html = """
+<h2 style="margin:0 0 8px;color:#f1f5f9;font-size:24px;font-weight:700;">You've been invited! 🎉</h2>
+<p style="margin:0 0 24px;color:#94a3b8;font-size:15px;line-height:1.6;">
+  Hi <strong style="color:#f1f5f9;">{first_name}</strong>, your account has been created on the <strong style="color:#38bdf8;">University Attendance System</strong>.
+</p>
+<div style="background:#0f172a;border-radius:12px;padding:20px 24px;margin-bottom:28px;border-left:4px solid {role_color};">
+  <p style="margin:0 0 4px;color:#64748b;font-size:12px;text-transform:uppercase;letter-spacing:1px;">Your Role</p>
+  <p style="margin:0;color:{role_color};font-size:18px;font-weight:700;">{role_label}</p>
+</div>
+<p style="margin:0 0 20px;color:#94a3b8;font-size:14px;line-height:1.6;">
+  To get started, click the button below to set your password. This link is valid for <strong style="color:#f1f5f9;">24 hours</strong>.
+</p>
+<div style="text-align:center;margin:32px 0;">
+  <a href="{setup_url}" style="display:inline-block;background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#ffffff;text-decoration:none;font-size:16px;font-weight:700;padding:16px 40px;border-radius:12px;letter-spacing:0.5px;">
+    Set My Password →
+  </a>
+</div>
+<p style="margin:28px 0 0;color:#475569;font-size:13px;line-height:1.6;">
+  If the button doesn't work, copy and paste this link into your browser:<br>
+  <a href="{setup_url}" style="color:#38bdf8;word-break:break-all;">{setup_url}</a>
+</p>
+<p style="margin:20px 0 0;color:#475569;font-size:12px;">
+  If you didn't expect this invitation, please ignore this email or contact your administrator.
+</p>
+"""
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('email_template_invitation', ?)", (invitation_html,))
+    
+    reset_html = """
+<h2 style="margin:0 0 8px;color:#f1f5f9;font-size:24px;font-weight:700;">Password Reset Request 🔐</h2>
+<p style="margin:0 0 24px;color:#94a3b8;font-size:15px;line-height:1.6;">
+  Hi <strong style="color:#f1f5f9;">{first_name}</strong>, we received a request to reset your password.
+</p>
+<div style="background:#0f172a;border-radius:12px;padding:20px 24px;margin-bottom:28px;border-left:4px solid #f59e0b;">
+  <p style="margin:0;color:#fcd34d;font-size:14px;">⚠️ This link will expire in <strong>24 hours</strong>. If you didn't request this, you can safely ignore this email.</p>
+</div>
+<div style="text-align:center;margin:32px 0;">
+  <a href="{reset_url}" style="display:inline-block;background:linear-gradient(135deg,#10b981,#059669);color:#ffffff;text-decoration:none;font-size:16px;font-weight:700;padding:16px 40px;border-radius:12px;letter-spacing:0.5px;">
+    Reset My Password →
+  </a>
+</div>
+<p style="margin:28px 0 0;color:#475569;font-size:13px;line-height:1.6;">
+  If the button doesn't work, copy and paste this link into your browser:<br>
+  <a href="{reset_url}" style="color:#38bdf8;word-break:break-all;">{reset_url}</a>
+</p>
+<p style="margin:20px 0 0;color:#475569;font-size:12px;">
+  If you did not request a password reset, your account is safe — no changes have been made.
+</p>
+"""
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('email_template_reset_password', ?)", (reset_html,))
 
     # 6. Attendance Sessions (Linked to Course)
     cursor.execute('''

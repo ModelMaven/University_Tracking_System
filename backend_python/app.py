@@ -8,6 +8,7 @@ import random
 from datetime import datetime, timedelta
 import db
 from geo import calculate_distance
+import email_utils
 
 app = Flask(__name__)
 app.secret_key = 'super_secret_attendance_key_for_mvp' # Required for sessions
@@ -94,9 +95,11 @@ def forgot_password():
             cursor.execute("INSERT INTO password_reset_tokens (token, user_id, expires_at) VALUES (?, ?, ?)", (token, user['id'], expires_at))
             conn.commit()
             
-            # MOCK EMAIL
+            # Fetch first_name for the email
+            cursor.execute("SELECT first_name FROM users WHERE id = ?", (user['id'],))
+            u = cursor.fetchone()
             reset_url = url_for('reset_password', token=token, _external=True)
-            print(f"\n{'='*50}\n[MOCK EMAIL SENT TO {email}]\nSubject: Reset Your Password\nLink: {reset_url}\n{'='*50}\n")
+            email_utils.send_password_reset_email(email, u['first_name'] if u else 'there', reset_url)
             
             flash('If that email exists in our system, a password reset link has been sent.', 'success')
         else:
@@ -208,10 +211,10 @@ def admin_admins():
 def admin_courses():
     conn = db.get_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT id, name, email, role FROM users")
+    cursor.execute("SELECT id, first_name, last_name, email, role FROM users")
     users = cursor.fetchall()
     
-    cursor.execute("SELECT c.id, c.name, u.name as prof_name FROM courses c LEFT JOIN users u ON c.professor_id = u.id")
+    cursor.execute("SELECT c.id, c.name, u.first_name || ' ' || u.last_name as prof_name FROM courses c LEFT JOIN users u ON c.professor_id = u.id")
     courses = cursor.fetchall()
     conn.close()
     return render_template('admin_courses.html', users=users, courses=courses)
@@ -223,7 +226,7 @@ def admin_reports():
     conn = db.get_db()
     cursor = conn.cursor()
     cursor.execute('''
-        SELECT a.id, u.name as student_name, c.name as course_name, a.created_at, a.status 
+        SELECT a.id, u.first_name || ' ' || u.last_name as student_name, c.name as course_name, a.created_at, a.status 
         FROM attendance_records a
         JOIN users u ON a.student_id = u.id
         JOIN attendance_sessions s ON a.session_id = s.id
@@ -243,6 +246,51 @@ def admin_reports():
         })
         
     return render_template('admin_reports.html', records=formatted_records)
+
+@app.route('/admin/email_settings', methods=['GET', 'POST'])
+@login_required
+@role_required('ADMIN')
+def admin_email_settings():
+    conn = db.get_db()
+    cursor = conn.cursor()
+    
+    if request.method == 'POST':
+        fields = ['smtp_host', 'smtp_port', 'smtp_user', 'smtp_password', 'smtp_from_name', 'smtp_from_email', 'email_template_invitation', 'email_template_reset_password']
+        for field in fields:
+            value = request.form.get(field, '')
+            cursor.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", (field, value))
+        conn.commit()
+        flash('Email settings and templates saved successfully!', 'success')
+    
+    cursor.execute("SELECT key, value FROM settings")
+    rows = cursor.fetchall()
+    conn.close()
+    
+    settings = {r['key']: r['value'] for r in rows}
+    smtp_configured = email_utils.is_smtp_configured(settings)
+    return render_template('admin_email_settings.html', settings=settings, smtp_configured=smtp_configured)
+
+@app.route('/admin/email_settings/test', methods=['POST'])
+@login_required
+@role_required('ADMIN')
+def admin_email_settings_test():
+    test_email = request.form.get('test_email', '')
+    if test_email:
+        cfg = email_utils.get_settings()
+        success, msg = email_utils.send_email(
+            test_email,
+            'Test Email — University Attendance System',
+            """<h2 style="color:#f1f5f9;margin:0 0 12px;">🎉 Test Email Successful!</h2>
+            <p style="color:#94a3b8;">Your SMTP configuration is working correctly. Invitation and password reset emails will be delivered to users.</p>""",
+            cfg
+        )
+        if success and msg != 'mock':
+            flash(f'Test email sent successfully to {test_email}!', 'success')
+        elif msg == 'mock':
+            flash('SMTP not configured — printed to terminal instead. Check your VS Code terminal!', 'error')
+        else:
+            flash(f'Failed to send test email: {msg}', 'error')
+    return redirect(url_for('admin_email_settings'))
 
 @app.route('/admin/create_user', methods=['POST'])
 @login_required
@@ -265,9 +313,8 @@ def admin_create_user():
         cursor.execute("INSERT INTO password_reset_tokens (token, user_id, expires_at) VALUES (?, ?, ?)", (token, user_id, expires_at))
         conn.commit()
         
-        # MOCK EMAIL
-        reset_url = url_for('reset_password', token=token, _external=True)
-        print(f"\n{'='*50}\n[MOCK EMAIL SENT TO {email}]\nSubject: You've been invited! Set your password\nLink: {reset_url}\n{'='*50}\n")
+        setup_url = url_for('reset_password', token=token, _external=True)
+        email_utils.send_invitation_email(email, first_name, role, setup_url)
         
         flash('User invited successfully! A password setup link has been sent to their email.', 'success')
     except Exception as e:
@@ -434,9 +481,8 @@ def admin_bulk_upload():
                     expires_at = datetime.datetime.now() + datetime.timedelta(hours=24)
                     cursor.execute("INSERT INTO password_reset_tokens (token, user_id, expires_at) VALUES (?, ?, ?)", (token, user_id, expires_at))
                     
-                    # MOCK EMAIL
-                    reset_url = url_for('reset_password', token=token, _external=True)
-                    print(f"\n{'='*50}\n[MOCK EMAIL SENT TO {email}]\nSubject: You've been invited! Set your password\nLink: {reset_url}\n{'='*50}\n")
+                    setup_url = url_for('reset_password', token=token, _external=True)
+                    email_utils.send_invitation_email(email, first_name, role, setup_url)
                     
                     success_count += 1
                 except Exception:
